@@ -122,7 +122,7 @@ def generate_narrative_audio(text_to_speak):
 
     try:
         # ID de la voz "Serena"
-        VOICE_ID_ELEGIDA = "Nh2zY9kknu6z4pZy6FhD"
+        VOICE_ID_ELEGIDA = "T3XH5K5D5DHosp5QKRfc"
         
         audio_stream = elevenlabs_client.text_to_speech.stream(
             text=cleaned_text,
