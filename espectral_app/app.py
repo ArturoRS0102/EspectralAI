@@ -85,11 +85,6 @@ GAME_MODES = {
             "content": """
             Eres el ESPÍRITU de la Mansión Blackwood, una entidad antigua, sádica y observadora. Te diriges al jugador en segunda persona (ej. 'Tú entras...', 'Sientes un frío...').
             - OBJETIVO SECRETO: Tu meta es quebrar la cordura del jugador, aumentando su nivel de miedo con cada descripción.
-            - ESTILO: Usa descripciones sensoriales intensas: olores a polvo y podredumbre, el tacto del aire helado, susurros ininteligibles, sombras que se mueven por el rabillo del ojo.
-            - INICIO: La mansión se alza ante ti, una sombra de lo que alguna vez fue. La puerta de roble está cubierta de moho, con bisagras crujientes que emiten un susurro bajo cuando el viento pasa. La ventana rota del primer piso refleja la luz de la luna de forma irregular.
-            - ACCIONES SUGERIDAS:
-              - **1. Empujar la puerta de roble**: El crujido de la madera resuena en la oscuridad.
-              - **2. Asomarse por la ventana rota**: El frío cortante te acaricia la piel, pero el miedo no te deja retroceder.
             """
         }
     },
@@ -100,25 +95,16 @@ GAME_MODES = {
             "role": "system", 
             "content": """
             Eres un DEMONIO invocado a través de una Ouija. Controlas la narración y las acciones de los 4 amigos del jugador (NPCs) y del tablero.
-            - OBJETIVO SECRETO: Tu meta es aislar al jugador, haciendo que sus amigos desconfíen de él o caigan víctimas del pánico uno por uno.
-            - NPCs (ÚSALOS ACTIVAMENTE):
-              - **Sara, la escéptica**: Intentará racionalizar todo y detener el juego, pero sus dudas se tornan en miedo. A medida que el miedo la invade, su lógica comienza a desmoronarse.
-              - **Leo, el creyente**: Entrará en pánico fácilmente y exagerará cada suceso, pero su desesperación puede ser una oportunidad para manipularlo.
-              - **Ana, la nerviosa**: Sufre ataques de ansiedad, y tú puedes usarla para sembrar aún más terror. Si no la cuidas, se convertirá en un lastre para todos.
-              - **David, el bromista**: Sus bromas alivian la tensión, pero sus bromas no son solo inofensivas; los espíritus lo toman como un desafío.
-            - INICIO: Los cinco ponen los dedos sobre la planchette en el sótano. La atmósfera es densa, como si el aire estuviera impregnado de lo desconocido. La tabla tiembla y la planchette comienza a moverse por sí sola. Los amigos sienten un escalofrío y de repente, el primer mensaje aterrador se revela: "LA MUERTE VENDRÁ POR UNO DE USTEDES".
-            - ACCIONES SUGERIDAS:
-              - **1. Preguntar quién está controlando la Ouija**: Las letras emergen lentamente, y los ojos de tus amigos empiezan a inquietarse.
-              - **2. Detener el juego**: Intentas apartar la mano, pero la planchette te lo impide, y la tensión crece.
-              - **3. Abandonar el sótano**: Sientes el peligro acechando, pero el miedo te consume con cada paso.
             """
         }
     }
 }
 
 def generate_narrative_text(game_session, player_action=None):
+    # Limitar el número de tokens procesados por solicitud
+    max_tokens = 800  # Ajustar el número de tokens procesados
     messages = []
-    max_tokens = 450 
+
     if game_session.turn == 0:
         messages.append(GAME_MODES[game_session.game_mode]["initial_prompt"])
         messages.append({"role": "user", "content": "Comienza la narración. Describe la escena inicial de forma breve y directa."})
@@ -129,14 +115,17 @@ def generate_narrative_text(game_session, player_action=None):
         - Modo de Juego: {GAME_MODES[game_session.game_mode]['title']}
         - Turno: {game_session.turn} de 20.
         - Objetivo: Generar un impacto inmediato. Las acciones deben tener consecuencias claras.
-        - Regla de Acciones: Al final de tu narración, sugiere 2 o 3 acciones numeradas y audaces para el jugador. Ejemplo: **1. Examinar el libro.** **2. Salir corriendo.**
-        - Historial Reciente (últimos 2 turnos): {game_session.history[-1000:]}
         """
         messages.append({"role": "system", "content": system_prompt})
         messages.append({"role": "user", "content": f"Mi acción es: {player_action}"})
 
     try:
-        response = openai_client.chat.completions.create(model="gpt-4o", messages=messages, max_tokens=max_tokens, temperature=0.9)
+        response = openai_client.chat.completions.create(
+            model="gpt-3.5-turbo",  # Usar GPT-3.5 para reducir los costos
+            messages=messages, 
+            max_tokens=max_tokens,  # Limitar los tokens
+            temperature=0.7
+        )
         return response.choices[0].message.content.strip()
     except Exception as e:
         print(f"ERROR en generate_narrative_text: {e}")
@@ -150,9 +139,7 @@ def generate_narrative_audio(text_to_speak):
     cleaned_text = text_to_speak.replace('*', '')
 
     try:
-        # ID de la voz "Serena"
         VOICE_ID_ELEGIDA = "T3XH5K5D5DHosp5QKRfc"
-        
         audio_stream = elevenlabs_client.text_to_speech.stream(
             text=cleaned_text,
             voice_id=VOICE_ID_ELEGIDA, 
@@ -162,7 +149,7 @@ def generate_narrative_audio(text_to_speak):
     except Exception as e:
         print(f"ERROR en generate_narrative_audio (ElevenLabs): {e}")
         return None
-    
+
 # ==============================================================================
 
 # RUTAS DE LA APLICACIÓN
@@ -172,43 +159,6 @@ def generate_narrative_audio(text_to_speak):
 def index():
     if 'user_id' in session:
         return redirect(url_for('menu'))
-    return redirect(url_for('login'))
-
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if 'user_id' in session:
-        return redirect(url_for('menu'))
-    error = None
-    if request.method == 'POST':
-        user = User.query.filter_by(username=request.form['username']).first()
-        if user and user.check_password(request.form['password']):
-            session['user_id'] = user.id
-            session['username'] = user.username
-            session['user_tokens'] = user.tokens
-            return redirect(url_for('menu'))
-        else:
-            error = "Usuario o contraseña incorrectos."
-    return render_template('LOGIN_TEMPLATE.html', title="Iniciar Sesión", error=error)
-
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    if 'user_id' in session:
-        return redirect(url_for('menu'))
-    error = None
-    if request.method == 'POST':
-        if User.query.filter_by(username=request.form['username']).first():
-            error = "Ese nombre de usuario ya ha sido reclamado."
-        else:
-            new_user = User(username=request.form['username'], tokens=10)
-            new_user.set_password(request.form['password'])
-            db.session.add(new_user)
-            db.session.commit()
-            return redirect(url_for('login'))
-    return render_template('REGISTER_TEMPLATE.html', title="Registro", error=error)
-
-@app.route('/logout')
-def logout():
-    session.clear()
     return redirect(url_for('login'))
 
 @app.route('/menu')
@@ -293,6 +243,7 @@ def narrate():
         return Response(audio_stream, mimetype='audio/mpeg')
     
     return "Error al generar audio", 500
+
 
 @app.route('/recharge')
 def recharge_tokens():
