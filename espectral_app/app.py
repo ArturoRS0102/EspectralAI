@@ -196,6 +196,7 @@ document.addEventListener('DOMContentLoaded', function() {
 # ==============================================================================
 
 def render_page(content_template, title, **context):
+    # Reemplaza correctamente el placeholder con el contenido de la página
     full_html = BASE_TEMPLATE.replace('', content_template)
     return render_template_string(full_html, title=title, **context)
 
