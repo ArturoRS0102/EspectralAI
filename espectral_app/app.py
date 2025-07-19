@@ -161,6 +161,44 @@ def index():
         return redirect(url_for('menu'))
     return redirect(url_for('login'))
 
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if 'user_id' in session:
+        return redirect(url_for('menu'))
+    error = None
+    if request.method == 'POST':
+        user = User.query.filter_by(username=request.form['username']).first()
+        if user and user.check_password(request.form['password']):
+            session['user_id'] = user.id
+            session['username'] = user.username
+            session['user_tokens'] = user.tokens
+            return redirect(url_for('menu'))
+        else:
+            error = "Usuario o contraseña incorrectos."
+    return render_template('LOGIN_TEMPLATE.html', title="Iniciar Sesión", error=error)
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if 'user_id' in session:
+        return redirect(url_for('menu'))
+    error = None
+    if request.method == 'POST':
+        if User.query.filter_by(username=request.form['username']).first():
+            error = "Ese nombre de usuario ya ha sido reclamado."
+        else:
+            new_user = User(username=request.form['username'], tokens=10)
+            new_user.set_password(request.form['password'])
+            db.session.add(new_user)
+            db.session.commit()
+            return redirect(url_for('login'))
+    return render_template('REGISTER_TEMPLATE.html', title="Registro", error=error)
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
+
 @app.route('/menu')
 def menu():
     if 'user_id' not in session:
