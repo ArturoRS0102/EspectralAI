@@ -2,11 +2,10 @@ import os
 import random
 import stripe
 from openai import OpenAI
-from flask import Flask, render_template_string, request, redirect, url_for, session, jsonify, Response
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, Response
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from werkzeug.security import generate_password_hash, check_password_hash
-# --- Importación corregida para la v2.x de ElevenLabs ---
 from elevenlabs import ElevenLabs
 
 # ==============================================================================
@@ -39,10 +38,8 @@ migrate = Migrate(app, db)
 openai_client = OpenAI(api_key=OPENAI_API_KEY)
 stripe.api_key = STRIPE_SECRET_KEY
 
-# --- Inicialización corregida del cliente de ElevenLabs ---
 elevenlabs_client = None
 if ELEVENLABS_API_KEY:
-    # El nombre de la clase ahora es solo ElevenLabs
     elevenlabs_client = ElevenLabs(api_key=ELEVENLABS_API_KEY)
 
 # ==============================================================================
@@ -124,7 +121,6 @@ def generate_narrative_audio(text_to_speak):
     cleaned_text = text_to_speak.replace('*', '')
 
     try:
-        # La llamada al método generate es a través del cliente
         audio_stream = elevenlabs_client.generate(
             text=cleaned_text,
             voice="Adam", 
@@ -137,81 +133,19 @@ def generate_narrative_audio(text_to_speak):
         return None
 
 # ==============================================================================
-# PLANTILLAS HTML
-# ==============================================================================
-
-BASE_TEMPLATE = """<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>{{ title }} - Espectral</title><script src="https://cdn.tailwindcss.com"></script><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Creepster&family=Roboto:wght@300;400;700&display=swap" rel="stylesheet"><style>body { font-family: 'Roboto', sans-serif; } .font-creepster { font-family: 'Creepster', cursive; } .text-shadow { text-shadow: 2px 2px 4px rgba(0,0,0,0.7); } .story-text::first-letter { font-size: 1.5em; }</style></head><body class="bg-gray-900 text-gray-200 min-h-screen flex flex-col"><nav class="bg-black bg-opacity-50 shadow-lg"><div class="container mx-auto px-6 py-3 flex justify-between items-center"><a href="{{ url_for('menu') }}" class="text-3xl font-creepster text-red-500 tracking-wider text-shadow">ESPECTRAL</a><div>{% if 'user_id' in session %}<span class="mr-4">Tokens: <span id="token-count" class="font-bold text-yellow-400">{{ session.get('user_tokens', 0) }}</span></span><a href="{{ url_for('logout') }}" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">Salir</a>{% endif %}</div></div></nav><main class="flex-grow container mx-auto p-4 md:p-6"></main><footer class="text-center text-gray-500 text-sm p-4">&copy; 2025 Espectral Interactive. Todos los derechos reservados.</footer></body></html>"""
-LOGIN_CONTENT = """<div class="flex items-center justify-center h-full"><div class="w-full max-w-md bg-gray-800 bg-opacity-70 rounded-lg shadow-2xl p-8 border border-gray-700"><h2 class="text-4xl font-creepster text-center text-red-500 mb-6 text-shadow">Iniciar Sesión</h2>{% if error %}<div class="bg-red-900 border border-red-600 text-red-100 px-4 py-3 rounded-lg relative mb-4" role="alert"><span class="block sm:inline">{{ error }}</span></div>{% endif %}<form method="POST" action="{{ url_for('login') }}"><div class="mb-4"><label for="username" class="block text-gray-400 text-sm font-bold mb-2">Usuario</label><input type="text" name="username" id="username" class="shadow appearance-none border border-gray-600 rounded-lg w-full py-3 px-4 bg-gray-700 text-gray-200 leading-tight focus:outline-none focus:ring-2 focus:ring-red-500" required></div><div class="mb-6"><label for="password" class="block text-gray-400 text-sm font-bold mb-2">Contraseña</label><input type="password" name="password" id="password" class="shadow appearance-none border border-gray-600 rounded-lg w-full py-3 px-4 bg-gray-700 text-gray-200 leading-tight focus:outline-none focus:ring-2 focus:ring-red-500" required></div><div class="flex items-center justify-between"><button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-300">Entrar en la Oscuridad</button></div></form><p class="text-center text-gray-500 text-sm mt-6">¿No tienes cuenta? <a href="{{ url_for('register') }}" class="font-bold text-red-500 hover:text-red-400">Regístrate aquí</a></p></div></div>"""
-REGISTER_CONTENT = """<div class="flex items-center justify-center h-full"><div class="w-full max-w-md bg-gray-800 bg-opacity-70 rounded-lg shadow-2xl p-8 border border-gray-700"><h2 class="text-4xl font-creepster text-center text-red-500 mb-6 text-shadow">Crear Cuenta</h2>{% if error %}<div class="bg-red-900 border border-red-600 text-red-100 px-4 py-3 rounded-lg relative mb-4" role="alert"><span class="block sm:inline">{{ error }}</span></div>{% endif %}<form method="POST" action="{{ url_for('register') }}"><div class="mb-4"><label for="username" class="block text-gray-400 text-sm font-bold mb-2">Usuario</label><input type="text" name="username" id="username" class="shadow appearance-none border border-gray-600 rounded-lg w-full py-3 px-4 bg-gray-700 text-gray-200 leading-tight focus:outline-none focus:ring-2 focus:ring-red-500" required></div><div class="mb-6"><label for="password" class="block text-gray-400 text-sm font-bold mb-2">Contraseña</label><input type="password" name="password" id="password" class="shadow appearance-none border border-gray-600 rounded-lg w-full py-3 px-4 bg-gray-700 text-gray-200 leading-tight focus:outline-none focus:ring-2 focus:ring-red-500" required></div><div class="flex items-center justify-between"><button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-300">Pactar con la Sombra</button></div></form><p class="text-center text-gray-500 text-sm mt-6">¿Ya tienes una cuenta? <a href="{{ url_for('login') }}" class="font-bold text-red-500 hover:text-red-400">Inicia sesión</a></p></div></div>"""
-MENU_CONTENT = """<div class="text-center"><h1 class="text-5xl font-creepster text-red-500 mb-4 text-shadow">Elige tu Pesadilla</h1><p class="text-lg text-gray-400 mb-10">Cada historia es un nuevo descenso a la locura. Elige con cuidado.</p><div class="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">{% for mode_id, mode_data in game_modes.items() %}<div class="bg-gray-800 border border-gray-700 rounded-lg p-6 text-center hover:border-red-500 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"><h2 class="text-3xl font-creepster text-red-400 mb-3">{{ mode_data.title }}</h2><p class="text-gray-400 mb-6">{{ mode_data.description }}</p><form action="{{ url_for('start_game') }}" method="POST"><input type="hidden" name="mode" value="{{ mode_id }}"><button type="submit" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-lg transition duration-300">Jugar</button></form></div>{% endfor %}</div><div class="mt-16"><h2 class="text-3xl font-creepster text-yellow-400 mb-4">Comprar Tokens</h2><p class="text-gray-400 mb-6">Necesitas más poder para enfrentarte a la oscuridad. Cada acción tiene un coste.</p><a href="{{ url_for('recharge_tokens') }}" class="bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-bold py-3 px-8 rounded-lg transition duration-300">Recargar 20 Tokens por $50 MXN</a></div></div>"""
-RECHARGE_CONTENT = """<div class="max-w-md mx-auto text-center bg-gray-800 p-8 rounded-lg border border-gray-700"><h2 class="text-4xl font-creepster text-yellow-400 mb-4">Recargar Energía</h2><p class="text-gray-400 mb-8">Adquiere 20 tokens para continuar tu aventura. La oscuridad no espera.</p><form action="{{ url_for('create_checkout_session') }}" method="POST"><button type="submit" class="w-full bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-bold py-4 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-300 text-lg">Pagar $50.00 MXN con Stripe</button></form></div>"""
-
-GAME_CONTENT = """
-<div class="max-w-4xl mx-auto bg-gray-800 bg-opacity-50 border border-gray-700 rounded-lg shadow-2xl p-4 sm:p-6 md:p-8">
-    <div id="tts-controls" class="flex items-center justify-center gap-4 mb-4 p-2 bg-black bg-opacity-20 rounded-lg">
-        <button id="play-btn" class="p-2 rounded-full bg-red-600 hover:bg-red-700 text-white" title="Reproducir/Reanudar"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></button>
-        <button id="pause-btn" class="p-2 rounded-full bg-gray-600 hover:bg-gray-700 text-white" title="Pausar"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></button>
-        <button id="stop-btn" class="p-2 rounded-full bg-gray-600 hover:bg-gray-700 text-white" title="Detener"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10h6v4H9z" /></svg></button>
-    </div>
-    <audio id="narrator-audio-player" class="hidden"></audio>
-    <div id="story-container" class="mb-6 h-96 overflow-y-auto p-4 bg-black bg-opacity-20 rounded-lg border border-gray-700"><div id="narrative-content" class="text-lg text-gray-300 leading-relaxed whitespace-pre-wrap story-text">{{ initial_narrative | safe }}</div><div id="loading-indicator" class="hidden text-center p-4"><p class="text-red-500 animate-pulse">El más allá está respondiendo...</p></div></div>
-    <form id="action-form" class="mt-4"><div class="mb-4"><label for="action_input" class="block text-gray-400 text-sm font-bold mb-2">¿Qué haces ahora?</label><textarea name="action_input" id="action_input" rows="2" class="shadow appearance-none border border-gray-600 rounded-lg w-full py-2 px-3 bg-gray-700 text-gray-200 leading-tight focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="Escribe tu acción aquí..."></textarea></div><div class="flex flex-col sm:flex-row gap-4"><button type="submit" id="submit-action" class="w-full sm:w-auto flex-grow bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-300">Actuar</button><a href="{{ url_for('menu') }}" class="w-full sm:w-auto text-center bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-4 rounded-lg transition duration-300">Huir (Volver al Menú)</a></div></form>
-    <div id="no-tokens-message" class="hidden mt-4 bg-yellow-900 border border-yellow-600 text-yellow-100 px-4 py-3 rounded-lg" role="alert"><p>Te has quedado sin energía para continuar. Tu voluntad se desvanece.</p><a href="{{ url_for('recharge_tokens') }}" class="font-bold text-yellow-300 hover:underline">Recarga tus tokens para seguir luchando contra la oscuridad.</a></div>
-</div>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const form = document.getElementById('action-form'), input = document.getElementById('action_input'), submitButton = document.getElementById('submit-action'), narrativeContainer = document.getElementById('story-container'), narrativeContent = document.getElementById('narrative-content'), loadingIndicator = document.getElementById('loading-indicator'), noTokensMessage = document.getElementById('no-tokens-message'), tokenCountSpan = document.getElementById('token-count');
-    const audioPlayer = document.getElementById('narrator-audio-player');
-    const playBtn = document.getElementById('play-btn'), pauseBtn = document.getElementById('pause-btn'), stopBtn = document.getElementById('stop-btn');
-    narrativeContainer.scrollTop = narrativeContainer.scrollHeight;
-    form.addEventListener('submit', function(e) {
-        e.preventDefault(); const actionText = input.value.trim(); if (!actionText) return;
-        audioPlayer.pause(); setLoading(true);
-        fetch("{{ url_for('player_action') }}", { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ action: actionText }) })
-        .then(response => { if (!response.ok) { throw new Error(`HTTP error! status: ${response.status}`); } return response.json(); })
-        .then(data => {
-            if (data.error) { handleError(data); } else {
-                const playerHtml = `\\n\\n<span class="text-blue-400 font-bold">Tú: ${actionText}</span>`; appendNarrative(playerHtml);
-                appendNarrative(`\\n\\n${data.narrative}`);
-                tokenCountSpan.textContent = data.tokens;
-                playAudio();
-            }
-        })
-        .catch(error => { console.error('Fetch Error:', error); appendNarrative('\\n<span class="text-red-400 font-bold">Error de conexión. No se pudo contactar con el otro lado.</span>'); })
-        .finally(() => { setLoading(false); input.value = ''; });
-    });
-    playBtn.addEventListener('click', () => { if (audioPlayer.src && audioPlayer.paused) { audioPlayer.play(); } else if (audioPlayer.src) { audioPlayer.currentTime = 0; audioPlayer.play(); } else { playAudio(); } });
-    pauseBtn.addEventListener('click', () => { audioPlayer.pause(); });
-    stopBtn.addEventListener('click', () => { audioPlayer.pause(); audioPlayer.currentTime = 0; });
-    function playAudio() { audioPlayer.src = `{{ url_for('narrate') }}?t=${new Date().getTime()}`; audioPlayer.play().catch(e => console.error("Error al reproducir audio:", e)); }
-    function setLoading(isLoading) { input.disabled = isLoading; submitButton.disabled = isLoading; loadingIndicator.classList.toggle('hidden', !isLoading); if (isLoading) narrativeContainer.scrollTop = narrativeContainer.scrollHeight; }
-    function appendNarrative(html) { narrativeContent.innerHTML += html.replace(/\\n/g, '<br>'); narrativeContainer.scrollTop = narrativeContainer.scrollHeight; }
-    function handleError(data) { if (data.reason === 'no_tokens') { noTokensMessage.classList.remove('hidden'); input.disabled = true; submitButton.disabled = true; } else { appendNarrative(`\\n<span class="text-red-400 font-bold">Error: ${data.error}</span>`); } }
-});
-</script>
-"""
-
-# ==============================================================================
-# FUNCIÓN AUXILIAR PARA RENDERIZAR PÁGINAS
-# ==============================================================================
-
-def render_page(content_template, title, **context):
-    # Reemplaza correctamente el placeholder con el contenido de la página
-    full_html = BASE_TEMPLATE.replace('', content_template)
-    return render_template_string(full_html, title=title, **context)
-
-# ==============================================================================
 # RUTAS DE LA APLICACIÓN
 # ==============================================================================
 
 @app.route('/')
 def index():
-    if 'user_id' in session: return redirect(url_for('menu'))
+    if 'user_id' in session:
+        return redirect(url_for('menu'))
     return redirect(url_for('login'))
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    if 'user_id' in session: return redirect(url_for('menu'))
+    if 'user_id' in session:
+        return redirect(url_for('menu'))
     error = None
     if request.method == 'POST':
         user = User.query.filter_by(username=request.form['username']).first()
@@ -220,12 +154,14 @@ def login():
             session['username'] = user.username
             session['user_tokens'] = user.tokens
             return redirect(url_for('menu'))
-        else: error = "Usuario o contraseña incorrectos."
-    return render_page(LOGIN_CONTENT, title="Iniciar Sesión", error=error)
+        else:
+            error = "Usuario o contraseña incorrectos."
+    return render_template('LOGIN_TEMPLATE.html', title="Iniciar Sesión", error=error)
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    if 'user_id' in session: return redirect(url_for('menu'))
+    if 'user_id' in session:
+        return redirect(url_for('menu'))
     error = None
     if request.method == 'POST':
         if User.query.filter_by(username=request.form['username']).first():
@@ -236,7 +172,7 @@ def register():
             db.session.add(new_user)
             db.session.commit()
             return redirect(url_for('login'))
-    return render_page(REGISTER_CONTENT, title="Registro", error=error)
+    return render_template('REGISTER_TEMPLATE.html', title="Registro", error=error)
 
 @app.route('/logout')
 def logout():
@@ -245,16 +181,20 @@ def logout():
 
 @app.route('/menu')
 def menu():
-    if 'user_id' not in session: return redirect(url_for('login'))
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
     user = db.session.get(User, session['user_id'])
-    if user: session['user_tokens'] = user.tokens
-    return render_page(MENU_CONTENT, title="Menú Principal", game_modes=GAME_MODES)
+    if user:
+        session['user_tokens'] = user.tokens
+    return render_template('MENU_TEMPLATE.html', title="Menú Principal", game_modes=GAME_MODES)
 
 @app.route('/start_game', methods=['POST'])
 def start_game():
-    if 'user_id' not in session: return redirect(url_for('login'))
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
     mode = request.form.get('mode')
-    if mode not in GAME_MODES: return redirect(url_for('menu'))
+    if mode not in GAME_MODES:
+        return redirect(url_for('menu'))
     
     GameSession.query.filter_by(user_id=session['user_id'], is_active=True).update({"is_active": False})
     
@@ -273,24 +213,30 @@ def start_game():
 
 @app.route('/play')
 def play_game():
-    if 'user_id' not in session or 'game_session_id' not in session: return redirect(url_for('menu'))
+    if 'user_id' not in session or 'game_session_id' not in session:
+        return redirect(url_for('menu'))
     game = db.session.get(GameSession, session.get('game_session_id'))
-    if not game or not game.is_active: return redirect(url_for('menu'))
+    if not game or not game.is_active:
+        return redirect(url_for('menu'))
     game_title = GAME_MODES[game.game_mode]['title']
-    return render_page(GAME_CONTENT, title=game_title, initial_narrative=game.history)
+    return render_template('GAME_TEMPLATE.html', title=game_title, initial_narrative=game.history)
 
 @app.route('/action', methods=['POST'])
 def player_action():
-    if 'user_id' not in session or 'game_session_id' not in session: return jsonify({'error': 'Sesión no válida'}), 401
+    if 'user_id' not in session or 'game_session_id' not in session:
+        return jsonify({'error': 'Sesión no válida'}), 401
     user = db.session.get(User, session['user_id'])
     if not user:
         session.clear()
         return jsonify({'error': 'Tu sesión ha expirado.'}), 401
-    if user.tokens <= 0: return jsonify({'error': 'No tienes suficientes tokens.', 'reason': 'no_tokens'}), 403
+    if user.tokens <= 0:
+        return jsonify({'error': 'No tienes suficientes tokens.', 'reason': 'no_tokens'}), 403
     game = db.session.get(GameSession, session['game_session_id'])
-    if not game or not game.is_active: return jsonify({'error': 'La sesión de juego no está activa.'}), 400
+    if not game or not game.is_active:
+        return jsonify({'error': 'La sesión de juego no está activa.'}), 400
     action = request.json.get('action')
-    if not action: return jsonify({'error': 'Acción no proporcionada.'}), 400
+    if not action:
+        return jsonify({'error': 'Acción no proporcionada.'}), 400
     
     try:
         narrative = generate_narrative_text(game, action)
@@ -312,19 +258,20 @@ def narrate():
     audio_stream = generate_narrative_audio(text_to_speak)
     
     if audio_stream:
-        # El audio_stream del cliente es un iterador listo para la respuesta
         return Response(audio_stream, mimetype='audio/mpeg')
     
     return "Error al generar audio", 500
 
 @app.route('/recharge')
 def recharge_tokens():
-    if 'user_id' not in session: return redirect(url_for('login'))
-    return render_page(RECHARGE_CONTENT, title="Recargar Tokens")
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    return render_template('RECHARGE_TEMPLATE.html', title="Recargar Tokens")
 
 @app.route('/create-checkout-session', methods=['POST'])
 def create_checkout_session():
-    if 'user_id' not in session: return jsonify(error="No autenticado"), 401
+    if 'user_id' not in session:
+        return jsonify(error="No autenticado"), 401
     try:
         checkout_session = stripe.checkout.Session.create(
             line_items=[{'price_data': {'currency': 'mxn', 'product_data': {'name': 'Paquete de 20 Tokens Espectrales'},'unit_amount': 5000},'quantity': 1}],
@@ -334,7 +281,8 @@ def create_checkout_session():
             metadata={'user_id': session['user_id']}
         )
         return redirect(checkout_session.url, code=303)
-    except Exception as e: return str(e)
+    except Exception as e:
+        return str(e)
 
 @app.route('/stripe-webhook', methods=['POST'])
 def stripe_webhook():
