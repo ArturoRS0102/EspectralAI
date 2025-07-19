@@ -6,8 +6,8 @@ from flask import Flask, render_template_string, request, redirect, url_for, ses
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from werkzeug.security import generate_password_hash, check_password_hash
-# --- Importación corregida de ElevenLabs ---
-from elevenlabs.client import ElevenLabsClient
+# --- Importación corregida para la v2.x de ElevenLabs ---
+from elevenlabs import ElevenLabs
 
 # ==============================================================================
 # CONFIGURACIÓN DE LA APLICACIÓN
@@ -42,7 +42,8 @@ stripe.api_key = STRIPE_SECRET_KEY
 # --- Inicialización corregida del cliente de ElevenLabs ---
 elevenlabs_client = None
 if ELEVENLABS_API_KEY:
-    elevenlabs_client = ElevenLabsClient(api_key=ELEVENLABS_API_KEY)
+    # El nombre de la clase ahora es solo ElevenLabs
+    elevenlabs_client = ElevenLabs(api_key=ELEVENLABS_API_KEY)
 
 # ==============================================================================
 # MODELOS DE BASE DE DATOS
@@ -116,21 +117,19 @@ def generate_narrative_text(game_session, player_action=None):
         raise e
 
 def generate_narrative_audio(text_to_speak):
-    # Verifica que el cliente se haya inicializado y haya una API key
     if not elevenlabs_client:
         print("ERROR: El cliente de ElevenLabs no está configurado.")
         return None
     
-    # Limpia el texto de caracteres que puedan interferir
     cleaned_text = text_to_speak.replace('*', '')
 
     try:
-        # --- Llamada corregida usando el cliente ---
+        # La llamada al método generate es a través del cliente
         audio_stream = elevenlabs_client.generate(
             text=cleaned_text,
             voice="Adam", 
             model="eleven_multilingual_v2",
-            stream=True  # El método generate ya devuelve un stream (iterador)
+            stream=True
         )
         return audio_stream
     except Exception as e:
@@ -312,8 +311,7 @@ def narrate():
     audio_stream = generate_narrative_audio(text_to_speak)
     
     if audio_stream:
-        # El audio_stream que devuelve el cliente ya es un iterador de bytes,
-        # listo para ser enviado en la respuesta.
+        # El audio_stream del cliente es un iterador listo para la respuesta
         return Response(audio_stream, mimetype='audio/mpeg')
     
     return "Error al generar audio", 500
