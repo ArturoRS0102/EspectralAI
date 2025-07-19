@@ -121,12 +121,12 @@ def generate_narrative_audio(text_to_speak):
     cleaned_text = text_to_speak.replace('*', '')
 
     try:
-        ADAM_VOICE_ID = "pNInz6obpgDQGcFmaJgB"
+        # ID de la voz "Serena"
+        VOICE_ID_ELEGIDA = "pMsXgVXv3BLzUgSXRplE"
         
-        # CORRECCIÓN: Se usa 'model_id' en lugar de 'model'
         audio_stream = elevenlabs_client.text_to_speech.stream(
             text=cleaned_text,
-            voice_id=ADAM_VOICE_ID, 
+            voice_id=VOICE_ID_ELEGIDA, 
             model_id="eleven_multilingual_v2"
         )
         return audio_stream
