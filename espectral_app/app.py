@@ -121,7 +121,8 @@ def generate_narrative_audio(text_to_speak):
     cleaned_text = text_to_speak.replace('*', '')
 
     try:
-        audio_stream = elevenlabs_client.generate(
+        # CORRECCIÓN: El método ahora es text_to_speech.generate()
+        audio_stream = elevenlabs_client.text_to_speech.generate(
             text=cleaned_text,
             voice="Adam", 
             model="eleven_multilingual_v2",
