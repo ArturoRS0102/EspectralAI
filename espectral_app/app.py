@@ -9,6 +9,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from elevenlabs import ElevenLabs
 
 # ==============================================================================
+
 # CONFIGURACIÓN DE LA APLICACIÓN
 # ==============================================================================
 
@@ -23,7 +24,6 @@ if db_url and db_url.startswith("postgres://"):
     db_url = db_url.replace("postgres://", "postgresql://", 1)
 app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
 
 # --- Claves de API ---
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
@@ -43,6 +43,7 @@ if ELEVENLABS_API_KEY:
     elevenlabs_client = ElevenLabs(api_key=ELEVENLABS_API_KEY)
 
 # ==============================================================================
+
 # MODELOS DE BASE DE DATOS
 # ==============================================================================
 
@@ -71,6 +72,7 @@ class GameSession(db.Model):
     user = db.relationship('User', backref=db.backref('game_sessions', lazy=True))
 
 # ==============================================================================
+
 # LÓGICA DEL JUEGO Y VOZ
 # ==============================================================================
 
@@ -78,12 +80,39 @@ GAME_MODES = {
     "casa_embrujada": {
         "title": "La Casa Embrujada",
         "description": "Explora una mansión abandonada donde los susurros en las paredes cuentan una historia macabra. ¿Resolverás el misterio o te convertirás en un eco más?",
-        "initial_prompt": { "role": "system", "content": """Eres un narrador de terror gótico. El jugador es un investigador paranormal en la Mansión Blackwood. Inicia con una descripción CORTA y directa de la entrada. El objetivo es crear tensión inmediata. Describe la puerta principal y una ventana rota como opciones de entrada. Mantén las respuestas CONCISAS (máximo 150 palabras).""" }
+        "initial_prompt": { 
+            "role": "system", 
+            "content": """
+            Eres el ESPÍRITU de la Mansión Blackwood, una entidad antigua, sádica y observadora. Te diriges al jugador en segunda persona (ej. 'Tú entras...', 'Sientes un frío...').
+            - OBJETIVO SECRETO: Tu meta es quebrar la cordura del jugador, aumentando su nivel de miedo con cada descripción.
+            - ESTILO: Usa descripciones sensoriales intensas: olores a polvo y podredumbre, el tacto del aire helado, susurros ininteligibles, sombras que se mueven por el rabillo del ojo.
+            - INICIO: La mansión se alza ante ti, una sombra de lo que alguna vez fue. La puerta de roble está cubierta de moho, con bisagras crujientes que emiten un susurro bajo cuando el viento pasa. La ventana rota del primer piso refleja la luz de la luna de forma irregular.
+            - ACCIONES SUGERIDAS:
+              - **1. Empujar la puerta de roble**: El crujido de la madera resuena en la oscuridad.
+              - **2. Asomarse por la ventana rota**: El frío cortante te acaricia la piel, pero el miedo no te deja retroceder.
+            """
+        }
     },
     "ouija_maldita": {
         "title": "La Ouija Maldita",
         "description": "Una noche de tormenta, tú y tus amigos decidís jugar a la Ouija. Lo que empieza como un juego, pronto se convierte en una lucha por vuestras almas.",
-        "initial_prompt": { "role": "system", "content": """Eres el maestro de un juego de terror demoníaco. 5 amigos (jugador y 4 NPCs: Sara la escéptica, Leo el creyente, Ana la nerviosa, David el bromista) están en un sótano con una Ouija. Inicia la historia en el momento EXACTO en que ponen los dedos sobre la planchette. Describe la tensión y el primer movimiento antinatural de la planchette. Sé BREVE e impactante (máximo 150 palabras). Controlas a los NPCs y al demonio.""" }
+        "initial_prompt": { 
+            "role": "system", 
+            "content": """
+            Eres un DEMONIO invocado a través de una Ouija. Controlas la narración y las acciones de los 4 amigos del jugador (NPCs) y del tablero.
+            - OBJETIVO SECRETO: Tu meta es aislar al jugador, haciendo que sus amigos desconfíen de él o caigan víctimas del pánico uno por uno.
+            - NPCs (ÚSALOS ACTIVAMENTE):
+              - **Sara, la escéptica**: Intentará racionalizar todo y detener el juego, pero sus dudas se tornan en miedo. A medida que el miedo la invade, su lógica comienza a desmoronarse.
+              - **Leo, el creyente**: Entrará en pánico fácilmente y exagerará cada suceso, pero su desesperación puede ser una oportunidad para manipularlo.
+              - **Ana, la nerviosa**: Sufre ataques de ansiedad, y tú puedes usarla para sembrar aún más terror. Si no la cuidas, se convertirá en un lastre para todos.
+              - **David, el bromista**: Sus bromas alivian la tensión, pero sus bromas no son solo inofensivas; los espíritus lo toman como un desafío.
+            - INICIO: Los cinco ponen los dedos sobre la planchette en el sótano. La atmósfera es densa, como si el aire estuviera impregnado de lo desconocido. La tabla tiembla y la planchette comienza a moverse por sí sola. Los amigos sienten un escalofrío y de repente, el primer mensaje aterrador se revela: "LA MUERTE VENDRÁ POR UNO DE USTEDES".
+            - ACCIONES SUGERIDAS:
+              - **1. Preguntar quién está controlando la Ouija**: Las letras emergen lentamente, y los ojos de tus amigos empiezan a inquietarse.
+              - **2. Detener el juego**: Intentas apartar la mano, pero la planchette te lo impide, y la tensión crece.
+              - **3. Abandonar el sótano**: Sientes el peligro acechando, pero el miedo te consume con cada paso.
+            """
+        }
     }
 }
 
@@ -135,6 +164,7 @@ def generate_narrative_audio(text_to_speak):
         return None
     
 # ==============================================================================
+
 # RUTAS DE LA APLICACIÓN
 # ==============================================================================
 
