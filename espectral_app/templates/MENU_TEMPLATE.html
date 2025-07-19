@@ -1,0 +1,33 @@
+MENU_TEMPLATE = """
+{% extends "BASE_TEMPLATE" %}
+{% block title %}Menú Principal - Espectral{% endblock %}
+{% block content %}
+<div class="text-center">
+    <h1 class="text-5xl font-creepster text-red-500 mb-4 text-shadow">Elige tu Pesadilla</h1>
+    <p class="text-lg text-gray-400 mb-10">Cada historia es un nuevo descenso a la locura. Elige con cuidado.</p>
+
+    <div class="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+        {% for mode_id, mode_data in game_modes.items() %}
+        <div class="bg-gray-800 border border-gray-700 rounded-lg p-6 text-center hover:border-red-500 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
+            <h2 class="text-3xl font-creepster text-red-400 mb-3">{{ mode_data.title }}</h2>
+            <p class="text-gray-400 mb-6">{{ mode_data.description }}</p>
+            <form action="{{ url_for('start_game') }}" method="POST">
+                <input type="hidden" name="mode" value="{{ mode_id }}">
+                <button type="submit" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-lg transition duration-300">
+                    Jugar
+                </button>
+            </form>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="mt-16">
+        <h2 class="text-3xl font-creepster text-yellow-400 mb-4">Comprar Tokens</h2>
+        <p class="text-gray-400 mb-6">Necesitas más poder para enfrentarte a la oscuridad. Cada acción tiene un coste.</p>
+        <a href="{{ url_for('recharge_tokens') }}" class="bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-bold py-3 px-8 rounded-lg transition duration-300">
+            Recargar 20 Tokens por $50 MXN
+        </a>
+    </div>
+</div>
+{% endblock %}
+"""

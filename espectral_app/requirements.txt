@@ -1,0 +1,9 @@
+Flask
+Flask_SQLAlchemy
+gunicorn
+openai
+stripe
+psycopg2-binary
+werkzeug
+Flask-Migrate
+elevenlabs

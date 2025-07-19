@@ -1,0 +1,15 @@
+RECHARGE_TEMPLATE = """
+{% extends "BASE_TEMPLATE" %}
+{% block title %}Recargar Tokens{% endblock %}
+{% block content %}
+<div class="max-w-md mx-auto text-center bg-gray-800 p-8 rounded-lg border border-gray-700">
+    <h2 class="text-4xl font-creepster text-yellow-400 mb-4">Recargar Energía</h2>
+    <p class="text-gray-400 mb-8">Adquiere 20 tokens para continuar tu aventura. La oscuridad no espera.</p>
+    <form action="{{ url_for('create_checkout_session') }}" method="POST">
+      <button type="submit" class="w-full bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-bold py-4 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-300 text-lg">
+        Pagar $50.00 MXN con Stripe
+      </button>
+    </form>
+</div>
+{% endblock %}
+"""

@@ -1,0 +1,107 @@
+GAME_TEMPLATE = """
+{% extends "BASE_TEMPLATE" %}
+{% block title %}Jugando: {{ game_title }}{% endblock %}
+{% block content %}
+<div class="max-w-4xl mx-auto bg-gray-800 bg-opacity-50 border border-gray-700 rounded-lg shadow-2xl p-4 sm:p-6 md:p-8">
+    <div id="story-container" class="mb-6 h-96 overflow-y-auto p-4 bg-black bg-opacity-20 rounded-lg border border-gray-700">
+        <div id="narrative-content" class="text-lg text-gray-300 leading-relaxed whitespace-pre-wrap story-text">
+            {{ initial_narrative | safe }}
+        </div>
+        <div id="loading-indicator" class="hidden text-center p-4">
+             <p class="text-red-500 animate-pulse">El más allá está respondiendo...</p>
+        </div>
+    </div>
+
+    <form id="action-form" class="mt-4">
+        <div class="mb-4">
+            <label for="action_input" class="block text-gray-400 text-sm font-bold mb-2">¿Qué haces ahora?</label>
+            <textarea name="action_input" id="action_input" rows="2" class="shadow appearance-none border border-gray-600 rounded-lg w-full py-2 px-3 bg-gray-700 text-gray-200 leading-tight focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="Escribe tu acción aquí..."></textarea>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-4">
+            <button type="submit" id="submit-action" class="w-full sm:w-auto flex-grow bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-300">
+                Actuar
+            </button>
+            <a href="{{ url_for('menu') }}" class="w-full sm:w-auto text-center bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-4 rounded-lg transition duration-300">
+                Huir (Volver al Menú)
+            </a>
+        </div>
+    </form>
+    <div id="no-tokens-message" class="hidden mt-4 bg-yellow-900 border border-yellow-600 text-yellow-100 px-4 py-3 rounded-lg" role="alert">
+        <p>Te has quedado sin energía para continuar. Tu voluntad se desvanece.</p>
+        <a href="{{ url_for('recharge_tokens') }}" class="font-bold text-yellow-300 hover:underline">Recarga tus tokens para seguir luchando contra la oscuridad.</a>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('action-form');
+    const input = document.getElementById('action_input');
+    const submitButton = document.getElementById('submit-action');
+    const narrativeContainer = document.getElementById('story-container');
+    const narrativeContent = document.getElementById('narrative-content');
+    const loadingIndicator = document.getElementById('loading-indicator');
+    const noTokensMessage = document.getElementById('no-tokens-message');
+    const tokenCountSpan = document.getElementById('token-count');
+
+    // Auto-scroll to bottom
+    narrativeContainer.scrollTop = narrativeContainer.scrollHeight;
+
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const actionText = input.value.trim();
+        if (!actionText) return;
+
+        // Disable form and show loading
+        setLoading(true);
+
+        fetch("{{ url_for('player_action') }}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ action: actionText }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                if (data.reason === 'no_tokens') {
+                    noTokensMessage.classList.remove('hidden');
+                    input.disabled = true;
+                    submitButton.disabled = true;
+                } else {
+                    appendNarrative(`\\n<span class="text-red-400 font-bold">Error: ${data.error}</span>`);
+                }
+            } else {
+                appendNarrative(`\\n\\n<span class="text-blue-400 font-bold">Tú: ${actionText}</span>\\n\\n${data.narrative}`);
+                tokenCountSpan.textContent = data.tokens;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            appendNarrative('\\n<span class="text-red-400 font-bold">Error de conexión. No se pudo contactar con el otro lado.</span>');
+        })
+        .finally(() => {
+            setLoading(false);
+            input.value = '';
+        });
+    });
+
+    function setLoading(isLoading) {
+        input.disabled = isLoading;
+        submitButton.disabled = isLoading;
+        if (isLoading) {
+            loadingIndicator.classList.remove('hidden');
+            narrativeContainer.scrollTop = narrativeContainer.scrollHeight;
+        } else {
+            loadingIndicator.classList.add('hidden');
+        }
+    }
+
+    function appendNarrative(html) {
+        narrativeContent.innerHTML += html.replace(/\\n/g, '<br>');
+        narrativeContainer.scrollTop = narrativeContainer.scrollHeight;
+    }
+});
+</script>
+{% endblock %}
+"""
